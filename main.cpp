@@ -95,6 +95,13 @@ public:
     }
 };
 
+enum Direction {
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST
+};
+
 class Outdoors : public olc::PixelGameEngine
 {
 public:
@@ -219,14 +226,14 @@ public:
                 }
 
                 std::vector<std::pair<int, int>> eggs = {
-                    {295, 335},
-                    {406, 267},
-                    {442, 255},
-                    {478, 307},
-                    {498, 243},
+                    {300, 310},
+                    {420, 267},
+                    {400, 225},
+                    {465, 307},
+                    {480, 243},
                     {513, 161},
-                    {560, 288},
-                    {592, 312},
+                    {565, 312},
+                    {568, 288},
                     {594, 221}
                 };
 
@@ -254,11 +261,11 @@ public:
                 }
 
                 std::vector<std::pair<int, int>> eggs = {
-                    {  95, 495},
+                    {  83, 495},
                     { 130, 425},
                     { 525, 350},
-                    { 578, 440},
-                    {1004, 470}
+                    { 578, 445},
+                    {1004, 450}
                 };
 
                 for (auto coords: eggs) {
@@ -286,12 +293,12 @@ public:
                 }
 
                 std::vector<std::pair<int, int>> eggs = {
-                    { 160, 620},
-                    { 200, 585},
+                    { 160, 605},
+                    { 200, 588},
                     { 440, 554},
-                    { 535, 655},
-                    { 739, 647},
-                    {1004, 637}
+                    { 535, 670},
+                    { 735, 650},
+                    {1004, 630}
                 };
 
                 for (auto coords: eggs) {
@@ -434,6 +441,70 @@ public:
         return GS_TITLE;
     }
 
+    void step(Direction dir)
+    {
+        int coord_adj[2][3];
+        switch (dir) {
+            case NORTH:
+                coord_adj[0][0] = -1;
+                coord_adj[0][1] = 0;
+                coord_adj[0][2] = 1;
+                coord_adj[1][0] = -1;
+                coord_adj[1][1] = -1;
+                coord_adj[1][2] = -1;
+                break;
+            case EAST:
+                coord_adj[0][0] = 1;
+                coord_adj[0][1] = 1;
+                coord_adj[0][2] = 1;
+                coord_adj[1][0] = -1;
+                coord_adj[1][1] = 0;
+                coord_adj[1][2] = 1;
+                break;
+            case SOUTH:
+                coord_adj[0][0] = 1;
+                coord_adj[0][1] = 0;
+                coord_adj[0][2] = -1;
+                coord_adj[1][0] = 1;
+                coord_adj[1][1] = 1;
+                coord_adj[1][2] = 1;
+                break;
+            case WEST:
+                coord_adj[0][0] = -1;
+                coord_adj[0][1] = -1;
+                coord_adj[0][2] = -1;
+                coord_adj[1][0] = 1;
+                coord_adj[1][1] = 0;
+                coord_adj[1][2] = -1;
+                break;
+        }
+
+        int offset = 1;
+        olc::Pixel p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x + coord_adj[0][offset], world->pos_y + coord_adj[1][offset]);
+
+        if (olc::BLACK == p) {
+            offset = 0;
+            p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x + coord_adj[0][offset], world->pos_y + coord_adj[1][offset]);
+        }
+        if (olc::BLACK == p) {
+            offset = 2;
+            p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x + coord_adj[0][offset], world->pos_y + coord_adj[1][offset]);
+        }
+
+        if (olc::BLUE == p) {
+            world->pos_x += coord_adj[0][offset];
+            world->pos_y += coord_adj[1][offset];
+            world->layer--;
+        } else if (olc::YELLOW == p) {
+            world->pos_x += coord_adj[0][offset];
+            world->pos_y += coord_adj[1][offset];
+            world->layer++;
+        } else if (olc::BLACK != p) {
+            world->pos_x += coord_adj[0][offset];
+            world->pos_y += coord_adj[1][offset];
+        }
+    }
+
 	uint8_t main(float fElapsedTime)
     {
         if (GetKey(olc::ESCAPE).bPressed) {
@@ -448,16 +519,7 @@ public:
             acc_y -= STEP;
             while (-1 >= acc_y) {
                 acc_y++;
-                olc::Pixel p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x, world->pos_y - 1);
-                if (olc::BLUE == p) {
-                    world->pos_y--;
-                    world->layer--;
-                } else if (olc::YELLOW == p) {
-                    world->pos_y--;
-                    world->layer++;
-                } else if (olc::BLACK != p) {
-                    world->pos_y--;
-                }
+                step(NORTH);
             }
         }
 
@@ -465,16 +527,7 @@ public:
             acc_y += STEP;
             while (1 <= acc_y) {
                 acc_y--;
-                olc::Pixel p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x, world->pos_y + 1);
-                if (olc::BLUE == p) {
-                    world->pos_y++;
-                    world->layer--;
-                } else if (olc::YELLOW == p) {
-                    world->pos_y++;
-                    world->layer++;
-                } else if (olc::BLACK != p) {
-                    world->pos_y++;
-                }
+                step(SOUTH);
             }
         }
 
@@ -482,16 +535,7 @@ public:
             acc_x -= STEP;
             while (-1 >= acc_x) {
                 acc_x++;
-                olc::Pixel p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x - 1, world->pos_y);
-                if (olc::BLUE == p) {
-                    world->pos_x--;
-                    world->layer--;
-                } else if (olc::YELLOW == p) {
-                    world->pos_x--;
-                    world->layer++;
-                } else if (olc::BLACK != p) {
-                    world->pos_x--;
-                }
+                step(WEST);
             }
         }
 
@@ -499,21 +543,12 @@ public:
             acc_x += STEP;
             while (1 <= acc_x) {
                 acc_x--;
-                olc::Pixel p = world->layers[world->layer].walk_mask->GetPixel(world->pos_x + 1, world->pos_y);
-                if (olc::BLUE == p) {
-                    world->pos_x++;
-                    world->layer--;
-                } else if (olc::YELLOW == p) {
-                    world->pos_x++;
-                    world->layer++;
-                } else if (olc::BLACK != p) {
-                    world->pos_x++;
-                }
+                step(EAST);
             }
         }
 
-        world->pos_x = clamp<float>(world->pos_x, 0, world->width);
-        world->pos_y = clamp<float>(world->pos_y, 0, world->height);
+        world->pos_x = clamp<float>(world->pos_x, 8, world->width - 8);
+        world->pos_y = clamp<float>(world->pos_y, 16, world->height);
 
         // 2. Collect collectibles
         for (auto &collectible: world->layers[world->layer].collectibles) {
@@ -560,7 +595,7 @@ public:
                 DrawSprite(collectible.pos_x - world->viewport_x, collectible.pos_y - world->viewport_y, collectible.type->sprite.get());
             }
         }
-        DrawSprite(world->pos_x - world->viewport_x - 8, world->pos_y - world->viewport_y - 8, world->player.get());
+        DrawSprite(world->pos_x - world->viewport_x - 8, world->pos_y - world->viewport_y - 16, world->player.get());
 
         SetPixelMode(olc::Pixel::NORMAL);
 
