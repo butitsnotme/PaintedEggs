@@ -30,3 +30,6 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . --config Release
 ```
+
+## License
+This software is made available under the same license as the olc::PixelGameEngine. See LICENSE for details.

@@ -114,6 +114,7 @@ public:
     static const uint8_t GS_SLEEP = 6;
     static const uint8_t GS_PAUSE = 7;
     static const uint8_t GS_EXIT = 8;
+    static const uint8_t GS_LICENSE = 9;
 
     uint8_t game_state = 0;
     float timer = 0;
@@ -133,6 +134,9 @@ public:
             option = 0;
         }
     }
+
+public:
+    std::vector<std::string> license_text;
 
 public:
 	Outdoors()
@@ -176,6 +180,9 @@ public:
                 break;
             case GS_EXIT:
                 return false;
+            case GS_LICENSE:
+                next_state = license();
+                break;
         }
 
         timer += fElapsedTime;
@@ -194,6 +201,28 @@ public:
 
 
             // Load all the things!
+            try {
+                std::ifstream t("LICENSE-compound");
+                std::string license;
+
+                t.seekg(0, std::ios::end);
+                license.reserve(t.tellg());
+                t.seekg(0, std::ios::beg);
+
+                license.assign(
+                    (std::istreambuf_iterator<char>(t)),
+                    std::istreambuf_iterator<char>()
+                );
+
+                std::stringstream ss(license);
+                std::string to;
+                while(std::getline(ss,to,'\n')){
+                    license_text.push_back(to);
+                }
+            } catch (...) {
+                failed.push_back("LICENSE-compound");
+            }
+
             world = std::make_unique<World>();
             world->height = 720;
             world->width = 1024;
@@ -375,6 +404,9 @@ public:
             int offset_x = ENGINE.length() / 2 * 8;
             int offset_y = 4;
             DrawString(ScreenWidth() / 2 - offset_x, ScreenHeight() / 2 - offset_y, ENGINE);
+
+            const std::string MADE_WITH = "made with";
+            DrawString(ScreenWidth() / 2 - offset_x, ScreenHeight() / 2 - offset_y - 8, MADE_WITH);
         } else if (timer < BLANK_1) {
         } else if (timer < CREATOR_CREDITS) {
             DrawString(256/2-8*8, 240/2-8, "Dennis Bellinger");
@@ -398,7 +430,7 @@ public:
 	uint8_t title()
     {
         if (timer == 0) {
-            world->time_remaining = 180;
+            world->time_remaining = 120;
             world->layer = 1;
             world->pos_x = 571;
             world->pos_y = 459;
@@ -418,6 +450,8 @@ public:
                 case 0:
                     return GS_MAIN;
                 case 1:
+                    return GS_LICENSE;
+                case 2:
                     return GS_EXIT;
             }
         }
@@ -427,7 +461,7 @@ public:
         if (GetKey(olc::DOWN).bPressed || GetKey(olc::S).bPressed || GetKey(olc::J).bPressed) {
             option++;
         }
-        option = clamp<int>(option, 0, 1);
+        option = clamp<int>(option, 0, 2);
 
         if (timer > 30 || GetKey(olc::ESCAPE).bPressed) {
             return GS_SLEEP;
@@ -435,7 +469,8 @@ public:
         Clear(olc::BLACK);
         DrawString(ScreenWidth() / 2 - 5 * 16 - 8, ScreenHeight() / 4 - 8, "PaintedEggs", olc::WHITE, 2);
         DrawString(ScreenWidth() / 2 - 2 * 8 - 4, ScreenHeight() / 2 - 4, "Start");
-        DrawString(ScreenWidth() / 2 - 2 * 8, ScreenHeight() / 2 + 4, "Exit");
+        DrawString(ScreenWidth() / 2 - 2 * 8 - 4, ScreenHeight() / 2 + 4, "License");
+        DrawString(ScreenWidth() / 2 - 2 * 8 - 4, ScreenHeight() / 2 + 8 + 4, "Exit");
         DrawString(ScreenWidth() / 2 - 4 * 8 - 4, ScreenHeight() / 2 - 4 + option * 8, "*");
 
         return GS_TITLE;
@@ -730,6 +765,55 @@ public:
         DrawString(ScreenWidth() / 2 - 2 * 8, ScreenHeight() / 2 + 4, "Exit");
         DrawString(ScreenWidth() / 2 - 5 * 8, ScreenHeight() / 2 - 4 + option * 8, "*");
         return GS_PAUSE;
+    }
+
+    uint8_t license()
+    {
+        if (GetKey(olc::S).bPressed || GetKey(olc::J).bPressed || GetKey(olc::DOWN).bPressed) {
+            option++;
+        }
+
+        if (GetKey(olc::W).bPressed || GetKey(olc::K).bPressed || GetKey(olc::UP).bPressed) {
+            option--;
+        }
+        if (GetKey(olc::SPACE).bPressed) {
+            option++;
+            if (option >= license_text.size()) {
+                return GS_TITLE;
+            }
+        }
+
+        if (GetKey(olc::ESCAPE).bPressed) {
+            return GS_TITLE;
+        }
+
+        option = clamp<int>(option, 0, license_text.size() - 1);
+
+        Clear(olc::BLACK);
+
+        int pos_y = 0;
+        for (int i = option; i < license_text.size() && (pos_y + 1) * 8 <= ScreenHeight(); i++) {
+            std::stringstream ss(license_text[i]);
+            std::string line;
+            std::string to;
+            while (std::getline(ss, to, ' ')) {
+                if ((line.size() + to.size() + 1) * 8 > ScreenWidth()) {
+                    DrawString(0, pos_y * 8, line);
+                    pos_y++;
+                    line = "\t";
+                }
+                if (0 < line.size()) {
+                    line.append(" ");
+                }
+                line.append(to);
+            }
+
+            DrawString(0, pos_y * 8, line);
+            pos_y++;
+        }
+
+
+        return GS_LICENSE;
     }
 };
 
