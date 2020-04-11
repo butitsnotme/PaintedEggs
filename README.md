@@ -24,7 +24,7 @@ Run the following from a command prompt/terminal starting from the directory whe
  * Windows: Shift+Right Click -> 'Open PowerSheel Here' from this folder.
  * Linux: Right Click -> 'Open in Terminal/Konsole' from this folder.
 
-``bash
+```bash
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
